@@ -57,11 +57,20 @@
     <Reference Include="UnityEngine">
       <HintPath>D:\SteamLibrary\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.AIModule">
+      <HintPath>D:\SteamLibrary\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.AIModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>D:\SteamLibrary\steamapps\common\Lethal Company\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AI\AIBalanceProfile.cs" />
+    <Compile Include="AI\AIBlackboard.cs" />
+    <Compile Include="AI\AIBehaviorController.cs" />
+    <Compile Include="AI\AIBehaviorCoordinator.cs" />
+    <Compile Include="AI\AISensorSuite.cs" />
+    <Compile Include="AI\AIStates.cs" />
     <Compile Include="Class1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
