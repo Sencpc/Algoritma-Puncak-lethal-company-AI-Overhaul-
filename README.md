@@ -81,5 +81,3 @@ This repo houses the ongoing AI-overhaul experimentation for **Lethal Company** 
 - Iterate on BepInEx/Harmony mods that extend NavMesh-driven enemy intelligence.
 - Track design decisions, feature prioritization, and academic deliverables.
 - Communicate goals with collaborators, advisors, and future contributors.
-
-Feel free to extend the document with implementation details, screenshots, or benchmarks as the project matures.

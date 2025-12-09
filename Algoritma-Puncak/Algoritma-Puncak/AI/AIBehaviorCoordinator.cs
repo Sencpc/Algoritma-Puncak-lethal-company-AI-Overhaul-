@@ -5,7 +5,7 @@ namespace AlgoritmaPuncakMod.AI
 {
     internal static class AIBehaviorCoordinator
     {
-        private static readonly Dictionary<int, AIBehaviorController> Controllers = new();
+        private static readonly Dictionary<int, AIBehaviorController> Controllers = new Dictionary<int, AIBehaviorController>();
         private static float _defaultTerritoryRadius = 12f;
 
         internal static void Initialize(float defaultTerritoryRadius)

@@ -5,7 +5,7 @@ namespace AlgoritmaPuncakMod.AI
 {
     internal sealed class AIBlackboard
     {
-        private readonly List<EnemyAI> _nearbyAllies = new();
+        private readonly List<EnemyAI> _nearbyAllies = new List<EnemyAI>();
 
         internal Vector3 LastKnownPlayerPosition { get; private set; } = Vector3.positiveInfinity;
         internal float DistanceToPlayer { get; private set; } = float.PositiveInfinity;

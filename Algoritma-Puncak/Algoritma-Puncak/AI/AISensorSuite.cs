@@ -7,8 +7,8 @@ namespace AlgoritmaPuncakMod.AI
 {
     internal sealed class AISensorSuite
     {
-        private readonly Dictionary<int, PlayerSnapshot> _playerSnapshots = new();
-        private readonly List<EnemyAI> _allyBuffer = new(8);
+        private readonly Dictionary<int, PlayerSnapshot> _playerSnapshots = new Dictionary<int, PlayerSnapshot>();
+        private readonly List<EnemyAI> _allyBuffer = new List<EnemyAI>(8);
         private readonly int _playerLayerMask = LayerMask.GetMask("Default", "Player", "Environment");
 
         internal void Scan(EnemyAI enemy, NavMeshAgent agent, AIBlackboard blackboard, AIBalanceProfile profile, float deltaTime)
@@ -34,7 +34,7 @@ namespace AlgoritmaPuncakMod.AI
             blackboard.UpdateAllies(allies);
         }
 
-        private static readonly List<PlayerControllerB> PlayerBuffer = new(4);
+        private static readonly List<PlayerControllerB> PlayerBuffer = new List<PlayerControllerB>(4);
 
         private static IReadOnlyList<PlayerControllerB> GatherPlayers()
         {
@@ -110,7 +110,8 @@ namespace AlgoritmaPuncakMod.AI
         private bool HasLineOfSight(Vector3 origin, Vector3 target)
         {
             var direction = target - origin;
-            if (!Physics.Raycast(origin, direction.normalized, out var hitInfo, direction.magnitude, _playerLayerMask, QueryTriggerInteraction.Ignore))
+            RaycastHit hitInfo;
+            if (!Physics.Raycast(origin, direction.normalized, out hitInfo, direction.magnitude, _playerLayerMask, UnityEngine.QueryTriggerInteraction.Ignore))
             {
                 return false;
             }
