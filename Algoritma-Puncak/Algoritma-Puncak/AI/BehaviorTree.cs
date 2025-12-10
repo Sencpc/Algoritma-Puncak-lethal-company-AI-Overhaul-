@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using HarmonyLib;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -19,11 +21,25 @@ namespace AlgoritmaPuncakMod.AI
             Enemy = enemy;
             Agent = agent;
             Blackboard = blackboard;
+            Spider = enemy as SandSpiderAI;
+            Bracken = enemy as FlowermanAI;
+            Hoarder = enemy as HoarderBugAI;
+            Coilhead = enemy as SpringManAI;
+            Baboon = enemy as BaboonBirdAI;
+            SandWorm = enemy as SandWormAI;
+            MouthDog = enemy as MouthDogAI;
         }
 
         internal EnemyAI Enemy { get; }
         internal NavMeshAgent Agent { get; }
         internal AIBlackboard Blackboard { get; }
+        internal SandSpiderAI Spider { get; }
+        internal FlowermanAI Bracken { get; }
+        internal HoarderBugAI Hoarder { get; }
+        internal SpringManAI Coilhead { get; }
+        internal BaboonBirdAI Baboon { get; }
+        internal SandWormAI SandWorm { get; }
+        internal MouthDogAI MouthDog { get; }
         internal AIBalanceProfile Profile { get; private set; }
         internal float DeltaTime { get; private set; }
         internal string ActiveAction { get; private set; }
@@ -130,7 +146,7 @@ namespace AlgoritmaPuncakMod.AI
         }
     }
 
-    internal static class BehaviorConditions
+    internal static partial class BehaviorConditions
     {
         internal static bool PlayerInsideTerritory(BTContext context)
         {
@@ -156,6 +172,127 @@ namespace AlgoritmaPuncakMod.AI
         {
             return context.Blackboard.ShouldStalk(context.Profile);
         }
+
+    }
+
+    internal static class NavigationHelpers
+    {
+        private static readonly float[] SampleMultipliers = new[] { 1f, 1.5f, 2.25f };
+
+        internal static bool TryMoveAgent(
+            BTContext context,
+            Vector3 target,
+            float sampleRadius,
+            float maxPathLength,
+            string actionLabel,
+            float desiredSpeed,
+            float acceleration = -1f,
+            float stoppingDistance = -1f,
+            bool allowPartialPath = false)
+        {
+            var agent = context.Agent;
+            if (agent == null)
+            {
+                return false;
+            }
+
+            if (!TryBuildPath(agent, target, sampleRadius, maxPathLength, allowPartialPath, out var path))
+            {
+                return false;
+            }
+
+            ConfigureAgent(agent, desiredSpeed, acceleration, stoppingDistance);
+            agent.autoBraking = false;
+            agent.SetPath(path);
+            context.SetActiveAction(actionLabel);
+            return true;
+        }
+
+        internal static Vector3 GetAgentOffset(EnemyAI enemy, float radius)
+        {
+            if (radius <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            int hash = enemy.GetInstanceID();
+            float angle = (hash % 360) * Mathf.Deg2Rad;
+            float scale = 0.35f + ((hash & 0xFF) / 255f) * 0.65f;
+            return new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius * scale;
+        }
+
+        private static void ConfigureAgent(NavMeshAgent agent, float speed, float acceleration, float stoppingDistance)
+        {
+            agent.speed = Mathf.Max(0.1f, speed);
+            if (acceleration > 0f)
+            {
+                agent.acceleration = acceleration;
+            }
+
+            if (stoppingDistance >= 0f)
+            {
+                agent.stoppingDistance = stoppingDistance;
+            }
+        }
+
+        private static bool TryBuildPath(
+            NavMeshAgent agent,
+            Vector3 target,
+            float sampleRadius,
+            float maxPathLength,
+            bool allowPartialPath,
+            out NavMeshPath selectedPath)
+        {
+            selectedPath = null;
+            float clampedRadius = Mathf.Max(0.35f, sampleRadius);
+
+            for (int i = 0; i < SampleMultipliers.Length; i++)
+            {
+                float radius = clampedRadius * SampleMultipliers[i];
+                if (!NavMesh.SamplePosition(target, out var hit, radius, NavMesh.AllAreas))
+                {
+                    continue;
+                }
+
+                var path = new NavMeshPath();
+                if (!NavMesh.CalculatePath(agent.transform.position, hit.position, NavMesh.AllAreas, path))
+                {
+                    continue;
+                }
+
+                if (!allowPartialPath && path.status != NavMeshPathStatus.PathComplete)
+                {
+                    continue;
+                }
+
+                if (maxPathLength > 0f && EstimatePathLength(path) > maxPathLength)
+                {
+                    continue;
+                }
+
+                selectedPath = path;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static float EstimatePathLength(NavMeshPath path)
+        {
+            if (path == null || path.corners == null || path.corners.Length < 2)
+            {
+                return 0f;
+            }
+
+            float length = 0f;
+            var corners = path.corners;
+            for (int i = 1; i < corners.Length; i++)
+            {
+                length += Vector3.Distance(corners[i - 1], corners[i]);
+            }
+
+            return length;
+        }
     }
 
     internal static class BehaviorActions
@@ -176,12 +313,19 @@ namespace AlgoritmaPuncakMod.AI
                 ? playerPos
                 : context.Blackboard.TerritoryCenter;
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(target, out hit, context.Profile.TerritoryRadius, NavMesh.AllAreas))
+            var speed = playerInside ? 7f : 3.5f;
+            var accel = playerInside ? 14f : 8f;
+            var stopping = playerInside ? 0.35f : 1.25f;
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                target,
+                context.Profile.TerritoryRadius * 0.5f,
+                context.Profile.TerritoryRadius * 2.5f,
+                "Territorial",
+                speed,
+                accel,
+                stopping))
             {
-                agent.speed = playerInside ? 7f : 3f;
-                agent.SetDestination(hit.position);
-                context.SetActiveAction("Territorial");
                 return BTStatus.Running;
             }
 
@@ -231,15 +375,20 @@ namespace AlgoritmaPuncakMod.AI
 
             if (target != Vector3.zero)
             {
-                target += offset;
+                target += offset + NavigationHelpers.GetAgentOffset(context.Enemy, context.Profile.PackCohesionRadius * 0.25f);
             }
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(target, out hit, context.Profile.PackCohesionRadius, NavMesh.AllAreas))
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                target,
+                context.Profile.PackCohesionRadius,
+                context.Profile.PackCohesionRadius * 2.5f,
+                "Pack",
+                5.25f,
+                acceleration: 10f,
+                stoppingDistance: 1.1f,
+                allowPartialPath: true))
             {
-                agent.speed = 5f;
-                agent.SetDestination(hit.position);
-                context.SetActiveAction("Pack");
                 return BTStatus.Running;
             }
 
@@ -264,14 +413,30 @@ namespace AlgoritmaPuncakMod.AI
             var direction = (lastPos - enemyPos).normalized;
             var predicted = lastPos + direction * context.Profile.HuntPredictionLead;
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(predicted, out hit, 8f, NavMesh.AllAreas))
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                predicted,
+                6f,
+                context.Profile.HuntAggroDistance * 1.5f,
+                "Hunt",
+                7.5f,
+                acceleration: 18f,
+                stoppingDistance: 0.4f))
             {
-                agent.speed = Mathf.Max(agent.speed, 6f);
-                agent.acceleration = Mathf.Max(agent.acceleration, 16f);
-                agent.stoppingDistance = 0.5f;
-                agent.SetDestination(hit.position);
-                context.SetActiveAction("Hunt");
+                return BTStatus.Running;
+            }
+
+            var bias = NavigationHelpers.GetAgentOffset(context.Enemy, 3f);
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                lastPos + bias,
+                6f,
+                context.Profile.HuntAggroDistance * 1.5f,
+                "Hunt",
+                6.5f,
+                acceleration: 16f,
+                stoppingDistance: 0.45f))
+            {
                 return BTStatus.Running;
             }
 
@@ -291,12 +456,17 @@ namespace AlgoritmaPuncakMod.AI
             var anchor = context.Enemy.transform.position + UnityEngine.Random.insideUnitSphere * 4f;
             anchor.y = context.Enemy.transform.position.y;
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(anchor, out hit, 3f, NavMesh.AllAreas))
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                anchor,
+                3f,
+                context.Profile.TerritoryRadius,
+                "Lure",
+                2.75f,
+                acceleration: 6f,
+                stoppingDistance: 0.75f,
+                allowPartialPath: true))
             {
-                agent.speed = 2.5f;
-                agent.SetDestination(hit.position);
-                context.SetActiveAction("Lure");
                 return BTStatus.Running;
             }
 
@@ -326,14 +496,18 @@ namespace AlgoritmaPuncakMod.AI
                 desired = context.Blackboard.LastKnownPlayerPosition - toPlayer.normalized * (context.Profile.StalkMaxDistance * 0.85f);
             }
 
-            agent.speed = Mathf.Min(agent.speed, 3.5f);
-            agent.stoppingDistance = context.Profile.StalkMinDistance * 0.5f;
+            desired += NavigationHelpers.GetAgentOffset(context.Enemy, context.Profile.StalkMinDistance * 0.35f);
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(desired, out hit, 5f, NavMesh.AllAreas))
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                desired,
+                5f,
+                context.Profile.StalkMaxDistance * 1.15f,
+                "Stalk",
+                3.25f,
+                acceleration: 8f,
+                stoppingDistance: context.Profile.StalkMinDistance * 0.45f))
             {
-                agent.SetDestination(hit.position);
-                context.SetActiveAction("Stalk");
                 return BTStatus.Running;
             }
 
@@ -354,11 +528,15 @@ namespace AlgoritmaPuncakMod.AI
             var patrolDirection = Quaternion.Euler(0f, Mathf.Sin(Time.time * 0.25f) * 45f, 0f) * context.Enemy.transform.forward;
             var target = context.Enemy.transform.position + patrolDirection * 3f;
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(target, out hit, 3f, NavMesh.AllAreas))
+            if (NavigationHelpers.TryMoveAgent(
+                context,
+                target,
+                3f,
+                context.Profile.TerritoryRadius,
+                "Reactive",
+                agent.speed,
+                allowPartialPath: true))
             {
-                agent.SetDestination(hit.position);
-                context.SetActiveAction("Reactive");
                 return BTStatus.Running;
             }
 
@@ -366,9 +544,59 @@ namespace AlgoritmaPuncakMod.AI
         }
     }
 
-    internal static class BehaviorTreeFactory
+    internal static partial class BehaviorTreeFactory
     {
-        internal static BTNode CreateTree()
+        internal static BTNode CreateTree(EnemyAI enemy)
+        {
+            if (enemy is SandSpiderAI)
+            {
+                return CreateSandSpiderTree();
+            }
+
+            if (enemy is CrawlerAI)
+            {
+                return CreateThumperTree();
+            }
+
+            if (enemy is BlobAI)
+            {
+                return CreateBlobTree();
+            }
+
+            if (enemy is FlowermanAI)
+            {
+                return CreateFlowermanTree();
+            }
+
+            if (enemy is HoarderBugAI)
+            {
+                return CreateHoarderTree();
+            }
+
+            if (enemy is SpringManAI)
+            {
+                return CreateCoilheadTree();
+            }
+
+            if (enemy is SandWormAI)
+            {
+                return CreateSandWormTree();
+            }
+
+            if (enemy is BaboonBirdAI)
+            {
+                return CreateBaboonTree();
+            }
+
+            if (enemy is MouthDogAI)
+            {
+                return CreateMouthDogTree();
+            }
+
+            return CreateDefaultTree();
+        }
+
+        private static BTNode CreateDefaultTree()
         {
             return new BTPrioritySelector("Root",
                 BuildTerritorialBranch(),
@@ -413,5 +641,40 @@ namespace AlgoritmaPuncakMod.AI
                 new BTConditionNode("ShouldStalk", BehaviorConditions.ShouldStalk),
                 new BTActionNode("StalkAction", BehaviorActions.ExecuteStalk));
         }
+
+        private static BTNode CreateHoarderTree()
+        {
+            return new BTPrioritySelector("HoarderRoot",
+                BuildHoarderCombatBranch(),
+                BuildHoarderScavengeBranch(),
+                new BTActionNode("HoarderIdle", HoarderActions.IdleAroundNest));
+        }
+
+        private static BTNode BuildHoarderCombatBranch()
+        {
+            return new BTPrioritySelector("HoarderCombat",
+                new BTSequence("HoarderFatal",
+                    new BTConditionNode("HoarderFatalAggro", HoarderConditions.FatalAggro),
+                    new BTActionNode("HoarderFatalAction", HoarderActions.ExecuteFatalAggro)),
+                new BTSequence("HoarderHard",
+                    new BTConditionNode("HoarderHardAggro", HoarderConditions.HardAggro),
+                    new BTActionNode("HoarderHardAction", HoarderActions.ExecuteHardAggro)),
+                new BTSequence("HoarderSoft",
+                    new BTConditionNode("HoarderSoftAggro", HoarderConditions.SoftAggro),
+                    new BTActionNode("HoarderSoftAction", HoarderActions.ExecuteSoftAggro)));
+        }
+
+        private static BTNode BuildHoarderScavengeBranch()
+        {
+            return new BTPrioritySelector("HoarderScavenge",
+                new BTSequence("HoarderCarryHome",
+                    new BTConditionNode("HoarderCarryingLoot", HoarderConditions.CarryingLoot),
+                    new BTActionNode("HoarderReturnNest", HoarderActions.ReturnLoot)),
+                new BTSequence("HoarderMigrate",
+                    new BTConditionNode("HoarderNestThreat", HoarderConditions.NestCompromised),
+                    new BTActionNode("HoarderMoveNest", HoarderActions.MigrateNest)),
+                new BTActionNode("HoarderSearch", HoarderActions.SearchForItems));
+        }
+
     }
 }

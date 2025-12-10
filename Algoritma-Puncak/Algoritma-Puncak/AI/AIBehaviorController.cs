@@ -19,7 +19,7 @@ namespace AlgoritmaPuncakMod.AI
             _agent = enemy.GetComponent<NavMeshAgent>();
             _blackboard.InitializeTerritory(enemy.transform.position, defaultTerritoryRadius);
             _context = new BTContext(_enemy, _agent, _blackboard);
-            _behaviorTree = BehaviorTreeFactory.CreateTree();
+            _behaviorTree = BehaviorTreeFactory.CreateTree(enemy);
         }
 
         internal void Tick(float deltaTime)

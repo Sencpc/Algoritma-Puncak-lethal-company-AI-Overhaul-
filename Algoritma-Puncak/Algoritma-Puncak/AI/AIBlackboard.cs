@@ -3,11 +3,21 @@ using UnityEngine;
 
 namespace AlgoritmaPuncakMod.AI
 {
-    internal sealed class AIBlackboard
+    internal sealed partial class AIBlackboard
     {
         private readonly List<EnemyAI> _nearbyAllies = new List<EnemyAI>();
+        partial void TickSpiderSystems(float deltaTime);
+        partial void TickThumperSystems(float deltaTime);
+        partial void TickBlobSystems(float deltaTime);
+        partial void TickFlowermanSystems(float deltaTime);
+        partial void TickHoarderSystems(float deltaTime);
+        partial void TickCoilheadSystems(float deltaTime);
+        partial void TickBaboonSystems(float deltaTime);
+        partial void TickSandWormSystems(float deltaTime);
+        partial void TickMouthDogSystems(float deltaTime);
 
         internal Vector3 LastKnownPlayerPosition { get; private set; } = Vector3.positiveInfinity;
+        internal Vector3 LastKnownPlayerForward { get; private set; } = Vector3.forward;
         internal float DistanceToPlayer { get; private set; } = float.PositiveInfinity;
         internal bool PlayerVisible { get; private set; }
         internal float PlayerNoiseLevel { get; private set; }
@@ -25,9 +35,13 @@ namespace AlgoritmaPuncakMod.AI
             TerritoryRadius = Mathf.Max(0f, radius);
         }
 
-        internal void UpdatePlayerInfo(Vector3 enemyPosition, Vector3 playerPosition, bool visible, float noiseLevel, float deltaTime)
+        internal void UpdatePlayerInfo(Vector3 enemyPosition, Vector3 playerPosition, Vector3 playerForward, bool visible, float noiseLevel, float deltaTime)
         {
             LastKnownPlayerPosition = playerPosition;
+            if (playerForward.sqrMagnitude > 0.01f)
+            {
+                LastKnownPlayerForward = playerForward.normalized;
+            }
             if (float.IsInfinity(playerPosition.x) || float.IsInfinity(playerPosition.y) || float.IsInfinity(playerPosition.z))
             {
                 DistanceToPlayer = float.PositiveInfinity;
@@ -75,6 +89,16 @@ namespace AlgoritmaPuncakMod.AI
             {
                 TimeSincePlayerSeen += deltaTime;
             }
+
+            TickSpiderSystems(deltaTime);
+            TickThumperSystems(deltaTime);
+            TickBlobSystems(deltaTime);
+            TickFlowermanSystems(deltaTime);
+            TickHoarderSystems(deltaTime);
+            TickCoilheadSystems(deltaTime);
+            TickBaboonSystems(deltaTime);
+            TickSandWormSystems(deltaTime);
+            TickMouthDogSystems(deltaTime);
         }
 
         internal void ResetLureTimer() => TimeSinceLastLure = 0f;
@@ -119,5 +143,6 @@ namespace AlgoritmaPuncakMod.AI
             var memory = Mathf.Clamp01(10f / (TimeSincePlayerSeen + 1f));
             return (visibility + noise + memory) * profile.ReactiveAggressionMultiplier;
         }
+
     }
 }

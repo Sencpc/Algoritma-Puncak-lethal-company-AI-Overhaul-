@@ -1,5 +1,6 @@
 ﻿using System;
 using AlgoritmaPuncakMod.AI;
+using AlgoritmaPuncakMod.Directors;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -47,7 +48,13 @@ namespace AlgoritmaPuncakMod
         private void OnDestroy()
         {
             AIBehaviorCoordinator.Reset();
+            AssuranceSpawnDirector.Reset();
             _harmony?.UnpatchSelf();
+        }
+
+        private void Update()
+        {
+            AssuranceSpawnDirector.Tick();
         }
 
         private void BindConfig()
