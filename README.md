@@ -1,83 +1,65 @@
 # Algoritma Puncak – Lethal Company AI Overhaul
 
-## Proposal Overview
+> Experimental BepInEx mod that rebuilds Lethal Company’s enemy brains, encounter flow, and moon-specific pacing.
 
-This repository accompanies the **AI for Games** proposal that reimagines the cooperative horror-economy title **Lethal Company** by Zeekerss. In the base game, crews descend onto abandoned industrial exomoons to salvage scrap, evade anomalies, and satisfy the ever-rising quotas of “The Company.” Our project investigates how smarter AI behaviours, dynamic encounters, and informed design trade-offs can heighten both the survival tension and the economic decision space.
+[![Made for Lethal Company](https://img.shields.io/badge/game-Lethal%20Company-ff4757.svg)](#) [![BepInEx 5](https://img.shields.io/badge/BepInEx-5.4%2B-blue.svg)](#)
 
-## Authors
+## Contents
 
-- Kelun Kaka Santoso — 222117039
-- Yoga Pramana Syahputra Teguh — 222117068
-- Go, Gregory Aaron Gosal — 222117051
-- Sean Cornellius Putra Chrisyanto — 222117067
+- [What’s in the Mod](#whats-in-the-mod)
+- [Installing](#installing)
+- [Building from Source](#building-from-source)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
 
-**Program Studi Informatika, Fakultas Sains dan Teknologi, Institut Sains dan Teknologi Terpadu Surabaya (ISTTS), 2025.**
+## What’s in the Mod
 
-## Game Description
+| Area                              | Highlights                                                                                                                            |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Behavior Tree Framework**       | Shared BTContext, blackboard system, NavMesh helpers, noise sensors, and logging to drive per-enemy playbooks.                        |
+| **Baboon Hawk Overhaul**          | Pack leadership, nest defense, scavenging loops, synchronized scream/alert broadcasts, and flocking separation/alignment.             |
+| **Sand Worm Heatmap AI**          | Footstep heat field, hotspot stalking vs. strike windows, camera-shake eruptions, and kill-radius validation.                         |
+| **Eyeless Dog (MouthDog) Rework** | High/low priority sound memories, NavMesh interrupt charges, cooldown windows, and roaming when quiet.                                |
+| **Hoarder Nest Memory**           | Nest state persists after theft; migration and combat branches key off stolen loot events.                                            |
+| **Assurance 220 Director**        | Moon-specific spawn cap clamping (5–7 indoor / 3–5 outdoor), weighted encounter table, and verbose logs via `AssuranceSpawnDirector`. |
+| **Sensor Suite Extensions**       | Player snapshots now capture sprint, drop, and voice cues; heatmap + blackboard hooks expose those signals to AI modules.             |
 
-Lethal Company is a first-person, four-player cooperative survival horror experience. Players act as contract workers for a faceless corporation, travelling to derelict moons to gather valuable scrap while traps, environmental hazards, and hostile fauna attempt to end the mission. Meeting the quota extends the cycle with tougher profit targets; failure ejects the crew into space and resets progress.
+> Looking for encounter plans? See [`docs/Assurance220Plan.md`](docs/Assurance220Plan.md) for the curated spawn/heatmap blueprint that inspired the Assurance director.
 
-## Gameplay Overview
+## Installing
 
-- Up to four players coordinate via proximity voice and text chat.
-- Procedurally assembled facilities mix loot rooms, traps, and creature spawns; weather states such as fog, sandstorms, floods, or eclipses alter visibility and threat levels.
-- Players balance inventory limits (four slots, with some two-handed items) against mobility and utility.
-- Scrap is sold on the Company moon 71-Gordion; funds unlock new equipment, ship cosmetics, and access to deadlier but more lucrative moons.
-- If no one boards the ship before midnight, autopilot departs and all scrap is lost.
+1. **Requirements**
+   - Legit copy of _Lethal Company_ (latest patch).
+   - BepInEx 5.4+ already deployed to the game directory.
+2. **Download** the latest `Algoritma-Puncak.dll` from Releases (or build it yourself).
+3. Drop the DLL into `Lethal Company/BepInEx/plugins/AlgoritmaPuncak/`.
+4. Launch the game once to generate config; check the console/log for `[AlgoritmaPuncak]` messages confirming the Assurance director + AI controllers loaded.
 
-### Core Gameplay Loop
+## Building from Source
 
-1. Deploy to a selected moon based on desired risk/reward.
-2. Sweep the facility, collecting scrap while monitoring stamina, sound, light, and inventory.
-3. Relay intel between field teams and the shipboard navigator (radar/terminal control).
-4. Avoid, kite, or outsmart anomalies such as Thumpers, Brackens, and the infamous Jester.
-5. Extract before the nightly deadline or escalating hazards overwhelm the crew.
-6. Sell haul, satisfy The Company quota, and receive the next three-day target.
-7. Reinvest credits into gear, plan the next moon, and repeat.
+```bash
+git clone https://github.com/Sencpc/Algoritma-Puncak-lethal-company-AI-Overhaul-.git
+cd Algoritma-Puncak-lethal-company-AI-Overhaul-/Algoritma-Puncak
+dotnet build Algoritma-Puncak.csproj
+```
 
-## Feature Highlights
+Copy the resulting `Algoritma-Puncak.dll` from `bin/Debug` (or `bin/Release`) to your BepInEx `plugins` folder.
 
-1. **Quota Pressure** – Rising corporate demands force deeper, riskier dives.
-2. **Diverse Moons** – Each moon mixes unique biomes, loot density, and monster tables.
-3. **Semi-Procedural Facilities** – Layouts, loot nodes, and spawns shuffle every run.
-4. **Scrap Economy** – Slot management and item weight drive grab-and-go triage decisions.
-5. **Signal-Driven AI** – Enemies react to light, sound, proximity, and line-of-sight cues.
-6. **Environmental Hazards** – Darkness, traps, locked doors, vents, and weather amplify dread.
-7. **Time Pressure** – Midnight deadlines escalate danger and force hard retreats.
-8. **Ship Hub** – Safe room for planning, radar support, and purchase terminals.
-9. **Equipment Investment** – Credits fund lights, scanners, tools, and novelty ship upgrades.
-10. **Skill-Based Progression** – Success hinges on coordination, knowledge, and loadout choices rather than character XP.
-11. **Proximity Comms** – Diegetic voice occlusion fuels emergent storytelling.
-12. **Meaningful Loss** – Death risks losing expensive gear, raising tension on every run.
-13. **Field Intel Mini-Games** – Clues such as footprints or flickering lights hint at lurking threats.
-14. **Stealth vs. Chaos** – Players choose between quiet infiltration or time-saving hustle.
-15. **Self-Tuned Difficulty** – Selecting moons effectively sets the challenge curve.
-16. **Dynamic Audio Atmosphere** – Sound cues double as warning systems without heavy HUD reliance.
-17. **Dark Corporate Humor** – Satirical messaging reinforces the narrative tone.
-18. **Drop-In Accessibility** – Sessions remain friendly to quick, repeatable co-op runs.
-19. **High Replayability** – Randomized layouts plus quota pressure keep loops fresh.
-20. **Expansion Hooks** – Future work can add elite enemy events, drone tools, or a living intel codex.
+## Roadmap
 
-## Risks & Mitigations
+- Extend voice-triggered stimuli so Eyeless Dogs (and allies) react to live mic input, not only remote AudioSources.
+- Add telemetry/visualizers for the heatmap + blackboard state to speed up encounter tuning.
+- More moon directors (e.g., Vow, Rend) with bespoke spawn tables and hazard mixes.
+- Extra AI overhauls: Thumper predictive pathing, Flowerman stare duels, Spider territorial traps with destructible webs.
 
-| Risk                                          | Mitigation                                                            |
-| --------------------------------------------- | --------------------------------------------------------------------- |
-| Repetition after long play sessions           | Introduce dynamic events, elite monsters, and rotating modifiers.     |
-| Solo players feel overwhelmed                 | Offer adaptive difficulty tuning or solo-friendly compensation perks. |
-| Steep learning curve for enemy identification | Gradually unlock an intel log or codex without spoiling encounters.   |
-| Gear loss snowballs into failure streaks      | Provide baseline "corporate relief" packages after consecutive wipes. |
+See open issues for detailed task tracking and discussion.
 
-## Future Enhancements
+## Contributing
 
-- Advanced sensor suites (bio-scanners, deployable drones, remote turrets).
-- Rare lunar events (eclipse nights, swarm incursions, rogue AI outbreaks).
-- Corporate reputation systems that affect pricing, penalties, and mission unlocks.
-- Shared bestiary/log that evolves as teams document anomalies.
+PRs, fork rewrites, or design notes are welcome. Please:
 
-## Repository Usage
+1. Target the latest `main` branch.
+2. Include before/after testing notes (`dotnet build`, in-game reproduction steps, etc.).
+3. Keep log messages prefixed with `[AlgoritmaPuncak]` to simplify debugging.
 
-This repo houses the ongoing AI-overhaul experimentation for **Lethal Company** and supporting proposal documentation. Use it to:
-
-- Iterate on BepInEx/Harmony mods that extend NavMesh-driven enemy intelligence.
-- Track design decisions, feature prioritization, and academic deliverables.
-- Communicate goals with collaborators, advisors, and future contributors.
+You can also reach out via Discussions if you have encounter ideas or want to sync moon directors.
