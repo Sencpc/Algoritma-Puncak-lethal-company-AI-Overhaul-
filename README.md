@@ -38,8 +38,8 @@
 ## Building from Source
 
 ```bash
-git clone https://github.com/Sencpc/Algoritma-Puncak-lethal-company-AI-Overhaul-.git
-cd Algoritma-Puncak-lethal-company-AI-Overhaul-/Algoritma-Puncak
+git clone https://github.com/Sencpc/Algoritma-Puncak-LC-Mod.git
+cd Algoritma-Puncak-LC-Mod/Algoritma-Puncak
 dotnet build Algoritma-Puncak.csproj
 ```
 
