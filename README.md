@@ -14,17 +14,16 @@
 
 ## What’s in the Mod
 
-| Area                              | Highlights                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Behavior Tree Framework**       | Shared BTContext, blackboard system, NavMesh helpers, noise sensors, and logging to drive per-enemy playbooks.                        |
-| **Baboon Hawk Overhaul**          | Pack leadership, nest defense, scavenging loops, synchronized scream/alert broadcasts, and flocking separation/alignment.             |
-| **Sand Worm Heatmap AI**          | Footstep heat field, hotspot stalking vs. strike windows, camera-shake eruptions, and kill-radius validation.                         |
-| **Eyeless Dog (MouthDog) Rework** | High/low priority sound memories, NavMesh interrupt charges, cooldown windows, and roaming when quiet.                                |
-| **Hoarder Nest Memory**           | Nest state persists after theft; migration and combat branches key off stolen loot events.                                            |
-| **Assurance 220 Director**        | Moon-specific spawn cap clamping (5–7 indoor / 3–5 outdoor), weighted encounter table, and verbose logs via `AssuranceSpawnDirector`. |
-| **Sensor Suite Extensions**       | Player snapshots now capture sprint, drop, and voice cues; heatmap + blackboard hooks expose those signals to AI modules.             |
-
-> Looking for encounter plans? See [`docs/Assurance220Plan.md`](docs/Assurance220Plan.md) for the curated spawn/heatmap blueprint that inspired the Assurance director.
+| Area                              | Highlights                                                                                                                                           |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Behavior Tree Framework**       | Shared BTContext, blackboard system, NavMesh helpers, noise sensors, and logging to drive per-enemy playbooks.                                       |
+| **Global Moon Spawn Director**    | Single Harmony-driven director sets caps + weights per moon, honors tier difficulty, and ensures every vanilla or modded enemy keeps a spawn chance. |
+| **Baboon Hawk Overhaul**          | Pack leadership, nest defense, scavenging loops, synchronized scream/alert broadcasts, and flocking separation/alignment.                            |
+| **Sand Worm Heatmap AI**          | Footstep heat field, hotspot stalking vs. strike windows, camera-shake eruptions, and kill-radius validation.                                        |
+| **Eyeless Dog (MouthDog) Rework** | High/low priority sound memories, NavMesh interrupt charges, cooldown windows, and roaming when quiet.                                               |
+| **Snare Flea Ambush Logic**       | Ambush planner uses mansion-aware heuristics (doorways, chandeliers, ceiling clearance) so fleas don’t soft-lock on unreachable ceilings.            |
+| **Hoarder Nest Memory**           | Nest state persists after theft; migration and combat branches key off stolen loot events.                                                           |
+| **Sensor Suite Extensions**       | Player snapshots now capture sprint, drop, and voice cues; heatmap + blackboard hooks expose those signals to AI modules.                            |
 
 ## Installing
 
@@ -33,7 +32,7 @@
    - BepInEx 5.4+ already deployed to the game directory.
 2. **Download** the latest `Algoritma-Puncak.dll` from Releases (or build it yourself).
 3. Drop the DLL into `Lethal Company/BepInEx/plugins/AlgoritmaPuncak/`.
-4. Launch the game once to generate config; check the console/log for `[AlgoritmaPuncak]` messages confirming the Assurance director + AI controllers loaded.
+4. Launch the game once to generate config; check the console/log for `[AlgoritmaPuncak]` messages confirming the MoonSpawnDirector + AI controllers loaded.
 
 ## Building from Source
 
@@ -49,8 +48,8 @@ Copy the resulting `Algoritma-Puncak.dll` from `bin/Debug` (or `bin/Release`) to
 
 - Extend voice-triggered stimuli so Eyeless Dogs (and allies) react to live mic input, not only remote AudioSources.
 - Add telemetry/visualizers for the heatmap + blackboard state to speed up encounter tuning.
-- More moon directors (e.g., Vow, Rend) with bespoke spawn tables and hazard mixes.
-- Extra AI overhauls: Thumper predictive pathing, Flowerman stare duels, Spider territorial traps with destructible webs.
+- Broaden per-moon policies (e.g., Liquidation, modded maps) with bespoke caps plus event hooks for environmental hazards.
+- Extra AI overhauls: Thumper predictive pathing, Flowerman stare duels, Spider territorial traps with destructible webs, and cross-pack alert chains.
 
 See open issues for detailed task tracking and discussion.
 
